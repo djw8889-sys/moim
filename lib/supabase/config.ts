@@ -9,4 +9,7 @@ export const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlkd2pkamFtYWJrbXB1dHJ0ZW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Njk3MzEsImV4cCI6MjA5NTU0NTczMX0.bS6zqHao-NKk4dJJRdPqtVAk6ckeyrcaAFV3wrf7DxE";
 
-export const KAKAO_MAP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY ?? "";
+// 카카오 JavaScript 키도 브라우저 노출용 공개 키 (카카오 콘솔의 도메인 제한으로 보호됨)
+export const KAKAO_MAP_KEY =
+  process.env.NEXT_PUBLIC_KAKAO_MAP_KEY ??
+  "a9c7a3222106c75a546d397f89457075";
