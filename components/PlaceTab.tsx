@@ -30,18 +30,44 @@ function loadKakaoSdk(appKey: string): Promise<void> {
       resolve();
       return;
     }
-    const existing = document.getElementById("kakao-sdk");
-    if (existing) {
-      existing.addEventListener("load", () =>
-        window.kakao.maps.load(() => resolve())
+
+    // 8초 안에 로드가 끝나지 않으면 타임아웃 처리.
+    // 카카오 콘솔에 사이트 도메인이 등록 안 된 경우 SDK가 조용히
+    // 멈춰버려서(별도 에러 이벤트 없음) 이 처리가 없으면 화면이 무한 대기 상태가 됨.
+    const timeoutId = window.setTimeout(() => {
+      reject(
+        new Error(
+          "카카오맵 로드 시간 초과 — 카카오 콘솔에 이 사이트 도메인이 등록됐는지 확인해주세요."
+        )
       );
+    }, 8000);
+    const resolveOnce = () => {
+      window.clearTimeout(timeoutId);
+      resolve();
+    };
+
+    const existing = document.getElementById(
+      "kakao-sdk"
+    ) as HTMLScriptElement | null;
+    if (existing) {
+      // 이미 예전에 추가된 script 태그라면 'load' 이벤트는 다시 안 뜬다.
+      // window.kakao 준비 여부를 직접 폴링해서 재방문 시에도 정상 동작하게 함.
+      const poll = window.setInterval(() => {
+        if (window.kakao?.maps) {
+          window.clearInterval(poll);
+          window.kakao.maps.load(resolveOnce);
+        }
+      }, 100);
       return;
     }
     const script = document.createElement("script");
     script.id = "kakao-sdk";
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&libraries=services&autoload=false`;
-    script.onload = () => window.kakao.maps.load(() => resolve());
-    script.onerror = () => reject(new Error("카카오맵 로드 실패"));
+    script.onload = () => window.kakao.maps.load(resolveOnce);
+    script.onerror = () => {
+      window.clearTimeout(timeoutId);
+      reject(new Error("카카오맵 스크립트 로드 실패"));
+    };
     document.head.appendChild(script);
   });
 }
@@ -62,7 +88,7 @@ export default function PlaceTab({
   kakaoKey: string;
 }) {
   const [sdkReady, setSdkReady] = useState(false);
-  const [sdkError, setSdkError] = useState(false);
+  const [sdkError, setSdkError] = useState("");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [recommended, setRecommended] = useState<Recommended[]>([]);
@@ -85,7 +111,9 @@ export default function PlaceTab({
     if (!kakaoKey) return;
     loadKakaoSdk(kakaoKey)
       .then(() => setSdkReady(true))
-      .catch(() => setSdkError(true));
+      .catch((err) =>
+        setSdkError(err instanceof Error ? err.message : "카카오맵 로드 실패")
+      );
   }, [kakaoKey]);
 
   // 지도 그리기
@@ -232,8 +260,15 @@ export default function PlaceTab({
         </div>
         {sdkError && (
           <p className="mt-2 text-sm text-red-500">
-            카카오맵을 불러오지 못했어요. 카카오 콘솔에 이 사이트 도메인이
-            등록됐는지 확인해주세요.
+            카카오맵을 불러오지 못했어요. 카카오 콘솔의{" "}
+            <b>앱 설정 &gt; 플랫폼 &gt; Web</b>에 이 사이트 도메인(
+            <code className="rounded bg-gray-100 px-1 text-xs">
+              {typeof window !== "undefined" ? window.location.origin : ""}
+            </code>
+            )이 등록됐는지, <b>제품 설정 &gt; 카카오맵</b>이 켜져 있는지
+            확인해주세요.
+            <br />
+            <span className="text-xs text-gray-400">({sdkError})</span>
           </p>
         )}
         {results.length > 0 && (
