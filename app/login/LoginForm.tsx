@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
+  const authError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle"
@@ -51,6 +52,12 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={sendMagicLink} className="mt-8 space-y-4">
+      {authError && (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          로그인에 실패했어요. 링크가 만료됐거나 이미 사용된 링크일 수
+          있어요. 아래에서 다시 로그인 링크를 받아주세요.
+        </p>
+      )}
       <input
         type="email"
         required

@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
+    console.error("auth/callback: exchangeCodeForSession 실패", error.message);
   }
 
   if (tokenHash && type) {
@@ -24,6 +25,14 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
+    console.error("auth/callback: verifyOtp 실패", error.message);
+  }
+
+  if (!code && !tokenHash) {
+    console.error(
+      "auth/callback: code/token_hash 파라미터 없음 — Supabase Redirect URLs 설정을 확인하세요",
+      request.url
+    );
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth`);
